@@ -10,16 +10,17 @@ botoes.nao.addEventListener('mouseenter', ()=>{
     botoes.nao.style.left = `${Math.floor(left)}vw`
 })
 
-const fotos = document.querySelector('.content') //
+const fotos = document.querySelector('.content')
 const inicio = document.getElementById('main')
 const main = document.querySelector('.main')
 const heart = document.querySelector('.heart')
 const audioThoseEyes = document.getElementById('thoseEyes')
 audioThoseEyes.volume = 0.05
 const textoP = document.querySelector('.text')
+// A estilização inicial da imagem ativa já está no script original
 fotos.children[8].style.filter = 'none'
 fotos.children[8].style.scale = 1
-alert(`Don't try to click on 'NÃO'... or try`)
+alert(`Don't try to click on 'NÃO'... or try`) //
 
 const text = `
 
@@ -81,10 +82,10 @@ você, mais do que ninguém, sabe o quanto eu quero acordar do seu lado todo dia
 
 depois de um tempo ter um 'mini nós' acordando com a gente.
 
-`
+` //
 
 let imageElementWidthAndGap = 0;
-let currentTranslateX = 0; 
+let currentTranslateX = 0;
 
 function calculateImageWidthAndGap() {
     if (fotos.children.length === 0) {
@@ -104,97 +105,120 @@ function calculateImageWidthAndGap() {
     }
 }
 
-// --- Nova Função para Pré-carregar Imagens ---
+// --- Função de Pré-carregamento Aprimorada com Promises ---
 function preloadCarouselImages() {
-    const imageElements = fotos.querySelectorAll('img'); // Seleciona todas as tags <img> dentro do contêiner 'fotos'
-    // console.log(`Pré-carregando ${imageElements.length} imagens...`); // Opcional: para depuração
+    const imageElements = fotos.querySelectorAll('img');
+    const promises = [];
+
+    // console.log(`Iniciando pré-carregamento de ${imageElements.length} imagens...`);
+
     imageElements.forEach(imgTag => {
-        const img = new Image(); // Cria um novo objeto Image em memória
-        img.src = imgTag.src;   // Define o src, o que inicia o download pelo navegador
-        
-        // Opcional: handlers para saber quando carregou ou deu erro (para depuração)
-        // img.onload = () => console.log(`Imagem pré-carregada: ${img.src}`);
-        // img.onerror = () => console.error(`Erro ao pré-carregar imagem: ${img.src}`);
+        const promise = new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                // console.log(`Imagem pré-carregada: ${imgTag.src}`);
+                resolve(imgTag.src); // Resolve quando a imagem é carregada
+            };
+            img.onerror = () => {
+                // console.error(`Erro ao pré-carregar: ${imgTag.src}`);
+                reject(new Error(`Falha ao carregar imagem: ${imgTag.src}`)); // Rejeita em caso de erro
+            };
+            img.src = imgTag.src;
+        });
+        promises.push(promise);
     });
+
+    return Promise.all(promises); // Retorna uma Promise que resolve quando TODAS as imagens carregarem
 }
-// --- Fim da Nova Função ---
+// --- Fim da Função de Pré-carregamento ---
 
 
 botoes.sim.addEventListener('click', () => {
     
-    // --- Chama a função de pré-carregamento aqui ---
-    preloadCarouselImages();
-    // --- Fim da chamada ---
-
-    inicio.style.marginLeft = '-150vw'
+    // Animações iniciais que não dependem do preload podem começar
+    inicio.style.marginLeft = '-150vw'; //
     setTimeout(()=>{
-        main.style.display = 'none'
-        heart.style.display = 'flex'
-        inicio.style.marginLeft = '0'
-    }, 300)
+        main.style.display = 'none'; //
+        heart.style.display = 'flex'; //
+        inicio.style.marginLeft = '0'; //
+    }, 300); //
 
     setTimeout(()=>{
-        inicio.style.background = 'transparent'
-        inicio.style.backdropFilter = 'none'
+        inicio.style.background = 'transparent'; //
+        inicio.style.backdropFilter = 'none'; //
         setTimeout(()=>{
-            heart.style.scale = '0'
-        }, 300)
-    }, 3000)
+            heart.style.scale = '0'; //
+        }, 300); //
+    }, 3000); //
 
-    setTimeout(()=>{
-        
-        const lines = text.split(/[\n\t]+/).map(line => line.trim()).filter(line => line);
-        
-        audioThoseEyes.play()
-        
-        async function loadText(lines){
-            for(const line of lines){
-                textoP.style.animation = 'text .4s ease'
-                textoP.innerHTML = line;
-                setTimeout(()=>{
-                    textoP.style.animation = 'none'
-                }, 400)
-                await new Promise(resolve => setTimeout(resolve, 6000));
-            }
-        }
-        
-        loadText(lines)
-        
-        calculateImageWidthAndGap();
-        window.addEventListener('resize', () => {
-            calculateImageWidthAndGap();
-        });
+    // Inicia o pré-carregamento das imagens do carrossel
+    preloadCarouselImages()
+        .then(loadedImageSources => {
+            // Este bloco .then() só é executado se TODAS as imagens forem carregadas com sucesso.
+            // console.log('Todas as imagens do carrossel pré-carregadas com sucesso:', loadedImageSources);
 
-        fotos.style.transition = 'transform 0.6s ease';
-        fotos.style.transform = `translateX(0px)`; 
-        currentTranslateX = 0; 
-
-        setInterval(()=>{
-            if (imageElementWidthAndGap === 0) { 
-                calculateImageWidthAndGap(); 
-                if(imageElementWidthAndGap === 0) return; 
-            }
-
-            fotos.children[8].style.filter = 'grayscale(1) blur(7px)'
-            fotos.children[8].style.scale = 0.8
-            fotos.children[9].style.filter = 'none'
-            fotos.children[9].style.scale = 1
-
-            currentTranslateX -= imageElementWidthAndGap;
-            fotos.style.transform = `translateX(${currentTranslateX}px)`;
+            // Agora que as imagens estão carregadas, podemos iniciar o áudio, texto e o carrossel.
+            // A lógica que estava no setTimeout de 3000ms original para o carrossel é movida para cá.
             
-            setTimeout(()=>{
-                const firstChild = fotos.children[0];
-                fotos.appendChild(firstChild); 
+            const lines = text.split(/[\n\t]+/).map(line => line.trim()).filter(line => line); //
+            
+            audioThoseEyes.play(); //
+            
+            async function loadText(lines){
+                for(const line of lines){
+                    textoP.style.animation = 'text .4s ease'; //
+                    textoP.innerHTML = line; //
+                    setTimeout(()=>{
+                        textoP.style.animation = 'none'; //
+                    }, 400); //
+                    await new Promise(resolve => setTimeout(resolve, 6000)); //
+                }
+            }
+            
+            loadText(lines);
+            
+            calculateImageWidthAndGap();
+            // É uma boa prática recalcular se a janela for redimensionada
+            window.addEventListener('resize', calculateImageWidthAndGap);
 
-                currentTranslateX += imageElementWidthAndGap;
-                fotos.style.transition = 'none'; 
+            fotos.style.transition = 'transform 0.6s ease';
+            fotos.style.transform = `translateX(0px)`;
+            currentTranslateX = 0;
+
+            setInterval(()=>{
+                if (imageElementWidthAndGap === 0) {
+                    calculateImageWidthAndGap(); 
+                    if(imageElementWidthAndGap === 0) return; 
+                }
+
+                // Lógica de destaque da imagem (igual à original e funcional)
+                fotos.children[8].style.filter = 'grayscale(1) blur(7px)'; //
+                fotos.children[8].style.scale = 0.8; //
+                fotos.children[9].style.filter = 'none'; //
+                fotos.children[9].style.scale = 1; //
+
+                currentTranslateX -= imageElementWidthAndGap;
                 fotos.style.transform = `translateX(${currentTranslateX}px)`;
                 
-                fotos.offsetHeight; 
+                setTimeout(()=>{
+                    const firstChild = fotos.children[0];
+                    fotos.appendChild(firstChild); //
 
-                fotos.style.transition = 'transform 0.6s ease'; 
-            }, 600) 
-        }, 3000)
-    }, 3000)
-})
+                    currentTranslateX += imageElementWidthAndGap;
+                    fotos.style.transition = 'none'; 
+                    fotos.style.transform = `translateX(${currentTranslateX}px)`;
+                    
+                    fotos.offsetHeight; 
+
+                    fotos.style.transition = 'transform 0.6s ease'; 
+                }, 600); //
+            }, 3000); //
+
+        })
+        .catch(error => {
+            console.error("Falha crítica: Não foi possível pré-carregar uma ou mais imagens do carrossel.", error);
+            // Neste ponto, o carrossel não iniciará automaticamente.
+            // Você pode adicionar uma mensagem para o usuário ou tentar uma lógica de fallback.
+            alert("Houve um problema ao carregar as imagens. Tente recarregar a página.");
+        });
+});
