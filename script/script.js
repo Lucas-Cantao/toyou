@@ -2,10 +2,10 @@ const botoes = {
     sim: document.getElementById('sim'),
     nao: document.getElementById('nao')
 }
-const positions = {
-    width: window.innerWidth,
-    height: innerHeight
-}
+// const positions = { // Esta variável não está sendo usada, pode ser removida se não houver planos para ela.
+//     width: window.innerWidth,
+//     height: innerHeight
+// }
 botoes.nao.addEventListener('mouseenter', ()=>{
     botoes.nao.style.position = 'absolute'
     const top = Math.random() * (85 - 15) + 15;
@@ -21,8 +21,8 @@ const heart = document.querySelector('.heart')
 const audioThoseEyes = document.getElementById('thoseEyes')
 audioThoseEyes.volume = 0.05
 const textoP = document.querySelector('.text')
-fotos.children[8].style.filter = 'none'
-fotos.children[8].style.scale = 1
+fotos.children[8].style.filter = 'none' //
+fotos.children[8].style.scale = 1 //
 alert(`Don't try to click on 'NÃO'... or try`)
 
 const text = `
@@ -87,6 +87,33 @@ depois de um tempo ter um 'mini nós' acordando com a gente.
 
 `
 
+// Variável para armazenar a largura da imagem mais o espaçamento
+let imageElementWidthAndGap = 0;
+let currentTranslateX = 0; // Controla a posição de translação do carrossel
+
+// Função para calcular a largura de uma imagem e seu espaçamento
+function calculateImageWidthAndGap() {
+    if (fotos.children.length === 0) {
+        imageElementWidthAndGap = 0;
+        return;
+    }
+    const firstImage = fotos.children[0];
+    // Fallback para caso haja apenas uma imagem (sem espaçamento para calcular com a segunda)
+    imageElementWidthAndGap = firstImage.offsetWidth;
+
+    if (fotos.children.length > 1) {
+        const secondImage = fotos.children[1];
+        const firstImageRect = firstImage.getBoundingClientRect();
+        const secondImageRect = secondImage.getBoundingClientRect();
+        // Certifica que as imagens têm dimensões antes de calcular
+        if (firstImageRect.width > 0 && secondImageRect.width > 0) {
+             imageElementWidthAndGap = secondImageRect.left - firstImageRect.left;
+        }
+    }
+    // console.log('Largura da imagem + gap calculada:', imageElementWidthAndGap); // Para depuração
+}
+
+
 botoes.sim.addEventListener('click', () => {
     
     inicio.style.marginLeft = '-150vw'
@@ -104,6 +131,7 @@ botoes.sim.addEventListener('click', () => {
         }, 300)
     }, 3000)
 
+    // O carrossel e o texto começam após 3 segundos
     setTimeout(()=>{
         
         const lines = text.split(/[\n\t]+/).map(line => line.trim()).filter(line => line);
@@ -123,17 +151,57 @@ botoes.sim.addEventListener('click', () => {
         
         loadText(lines)
         
+        // --- Início das modificações do Carrossel ---
+
+        // Calcula a largura da imagem e espaçamento assim que o carrossel for iniciado
+        calculateImageWidthAndGap();
+        // Adiciona um listener para recalcular em caso de redimensionamento da janela (opcional, mas bom para responsividade)
+        window.addEventListener('resize', () => {
+            calculateImageWidthAndGap();
+            // Poderia ser necessário reajustar currentTranslateX aqui se a lógica for muito complexa
+        });
+
+        // Aplica a transição CSS ao contêiner das fotos para a propriedade transform
+        fotos.style.transition = 'transform 0.6s ease';
+        fotos.style.transform = `translateX(0px)`; // Garante a posição inicial
+        currentTranslateX = 0; // Reseta se o botão for clicado múltiplas vezes
+
         setInterval(()=>{
+            if (imageElementWidthAndGap === 0) { // Evita divisão por zero ou comportamento estranho se a largura não foi calculada
+                // console.warn("Largura da imagem não calculada, pulando a iteração do carrossel.");
+                calculateImageWidthAndGap(); // Tenta recalcular
+                if(imageElementWidthAndGap === 0) return; // Pula esta iteração se ainda não conseguiu
+            }
+
+            // Lógica de destaque da imagem (igual à original)
+            // A imagem em fotos.children[8] está saindo do "centro"
+            fotos.children[8].style.filter = 'grayscale(1) blur(7px)' //
+            fotos.children[8].style.scale = 0.8 //
+            // A imagem em fotos.children[9] está entrando no "centro"
+            fotos.children[9].style.filter = 'none' //
+            fotos.children[9].style.scale = 1 //
+
+            // Move o contêiner de fotos para a esquerda
+            currentTranslateX -= imageElementWidthAndGap;
+            fotos.style.transform = `translateX(${currentTranslateX}px)`;
             
-            fotos.children[0].style.marginLeft = `-${fotos.children[0].clientWidth * 2}px`
-            fotos.children[8].style.filter = 'grayscale(1) blur(7px)'
-            fotos.children[8].style.scale = 0.8
-            fotos.children[9].style.filter = 'none'
-            fotos.children[9].style.scale = 1
+            // Após a transição de 0.6s, move o elemento DOM e reajusta a posição
             setTimeout(()=>{
-                fotos.appendChild(fotos.children[0])
-                fotos.lastChild.style.marginLeft = 0
-            }, 600)
+                const firstChild = fotos.children[0];
+                fotos.appendChild(firstChild); // Move o primeiro filho para o final
+
+                // Compensa a translação para que não haja salto visual
+                currentTranslateX += imageElementWidthAndGap;
+                fotos.style.transition = 'none'; // Remove a transição temporariamente para o ajuste
+                fotos.style.transform = `translateX(${currentTranslateX}px)`;
+                
+                // Força um reflow do navegador para aplicar a mudança de transform imediatamente
+                // antes de reabilitar a transição. Uma forma comum é ler uma propriedade como offsetHeight.
+                fotos.offsetHeight; 
+
+                fotos.style.transition = 'transform 0.6s ease'; // Readiciona a transição para a próxima animação
+            }, 600) // Este tempo DEVE corresponder à duração da transição CSS (0.6s)
         }, 3000)
+        // --- Fim das modificações do Carrossel ---
     }, 3000)
 })
